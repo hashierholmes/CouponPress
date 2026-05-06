@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CouponPress — Coupon Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --ink:    #1a1a1a;
+  --paper:  #f4efe3;
+  --white:  #ffffff;
+  --accent: #d62828;
+  --green:  #2b9348;
+  --muted:  #888;
+  --border: #d4c9b0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+
+header{background:var(--ink);padding:14px 28px;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--accent);flex-shrink:0}
+header h1{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:3px;color:var(--paper)}
+.badge{background:var(--accent);color:#fff;font-family:'Space Mono',monospace;font-size:.6rem;padding:3px 8px;border-radius:2px;letter-spacing:1px}
+
+.app{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:300px;flex-shrink:0;background:var(--white);border-right:2px solid var(--border);padding:20px 18px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.sec{display:flex;flex-direction:column;gap:8px}
+.sec-title{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.lbl{display:block;font-size:.78rem;font-weight:600;margin-bottom:2px}
+.two-col{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.two-col span{text-align:center;color:var(--muted)}
+
+.drop-zone{border:2.5px dashed var(--border);border-radius:8px;padding:22px 12px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper);position:relative}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:#fff5f5}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:2rem;display:block;margin-bottom:6px}
+.drop-zone p{font-size:.8rem;color:var(--muted);line-height:1.5}
+.drop-zone strong{color:var(--ink)}
+
+#thumbWrap{display:none;border-radius:6px;overflow:hidden;border:2px solid var(--border);position:relative;background:#fafafa}
+#thumbWrap img{width:100%;display:block;max-height:130px;object-fit:contain;padding:6px;background:#fff}
+.rm-btn{position:absolute;top:5px;right:5px;background:var(--accent);color:#fff;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:bold;line-height:22px;text-align:center}
+
+input[type=number],select{width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;font-size:.82rem;background:var(--paper);color:var(--ink)}
+input[type=number]:focus,select:focus{outline:none;border-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.range-row{display:flex;align-items:center;gap:8px}
+.range-row span{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--accent);min-width:36px;text-align:right}
+
+.swatch-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
+.swatch.active{border-color:var(--ink);transform:scale(1.25)}
+input[type=color]{width:26px;height:26px;border-radius:50%;border:2px solid #ccc;cursor:pointer;padding:1px}
+
+.btn-pdf{background:var(--accent);color:#fff;border:none;padding:13px;border-radius:6px;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;cursor:pointer;width:100%;transition:background .2s,transform .1s}
+.btn-pdf:hover:not(:disabled){background:#b01c1c}
+.btn-pdf:active:not(:disabled){transform:scale(.98)}
+.btn-pdf:disabled{background:#ccc;cursor:not-allowed}
+.btn-print{background:var(--ink);color:var(--paper);border:none;padding:10px;border-radius:6px;font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:1px;cursor:pointer;width:100%;transition:background .2s}
+.btn-print:hover:not(:disabled){background:#333}
+.btn-print:disabled{opacity:.4;cursor:not-allowed}
+
+#progressWrap{display:none;flex-direction:column;gap:5px}
+#progressBar{height:6px;background:#eee;border-radius:3px;overflow:hidden}
+#progressFill{height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width .25s}
+#progressMsg{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);text-align:center}
+
+/* PREVIEW */
+.preview-area{flex:1;background:#666;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px;overflow:auto}
+.preview-label{font-family:'Space Mono',monospace;font-size:.65rem;color:#ddd;letter-spacing:2px;text-transform:uppercase;flex-shrink:0}
+#sheet{background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.45);width:680px;height:1120px;flex-shrink:0;overflow:hidden;position:relative}
+#couponGrid{display:grid;width:100%;height:100%}
+.coupon-cell{overflow:hidden;display:flex;align-items:center;justify-content:center}
+.coupon-cell img{display:block}
+#couponGrid.b-solid .coupon-cell{border:1px solid #bbb}
+#couponGrid.b-dashed .coupon-cell{border:1px dashed #aaa}
+#couponGrid.b-dotted .coupon-cell{border:1px dotted #aaa}
+#couponGrid.b-none .coupon-cell{border:none}
+.empty-state{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#ccc;grid-column:1/-1}
+.empty-state .ei{font-size:3.5rem}
+.empty-state p{font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:1px}
+.info-bar{background:#1a1a1a;color:#aaa;font-family:'Space Mono',monospace;font-size:.62rem;padding:5px 14px;border-radius:3px;letter-spacing:1px;flex-shrink:0}
+
+/* PRINT MEDIA */
+@media print{
+  @page{size:8.5in 14in;margin:0}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;position:fixed;inset:0;width:8.5in;height:14in;background:#fff}
+  #printGrid{display:grid;width:8.5in;height:14in}
+  #printGrid .coupon-cell{overflow:hidden;display:flex;align-items:center;justify-content:center}
+  #printGrid .coupon-cell img{display:block}
+  #printGrid.b-solid .coupon-cell{border:.5pt solid #bbb}
+  #printGrid.b-dashed .coupon-cell{border:.5pt dashed #aaa}
+  #printGrid.b-dotted .coupon-cell{border:.5pt dotted #aaa}
+  #printGrid.b-none .coupon-cell{border:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CouponPress</h1>
+  <span style="display: none;" class="badge">5×20 LONG BOND</span>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+
+    <div class="sec">
+      <div class="sec-title">01 — Upload Image</div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <span class="dz-icon">🎟️</span>
+        <p><strong>Click or drag & drop</strong><br>PNG · JPG · GIF · WEBP<br><em style="font-size:.72rem">or paste from clipboard</em></p>
+      </div>
+      <div id="thumbWrap">
+        <img id="thumb" src="" alt="Preview">
+        <button class="rm-btn" id="rmBtn">✕</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">02 — Layout</div>
+      <span class="lbl">Columns × Rows</span>
+      <div class="two-col">
+        <input type="number" id="cols" value="5" min="1" max="15">
+        <span>×</span>
+        <input type="number" id="rows" value="20" min="1" max="60">
+      </div>
+      <span class="lbl">Cut-Line Style</span>
+      <select id="borderSel">
+        <option value="b-dashed">Dashed (recommended)</option>
+        <option value="b-solid">Solid</option>
+        <option value="b-dotted">Dotted</option>
+        <option value="b-none">None</option>
+      </select>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">03 — Image</div>
+      <span class="lbl">Fit Mode</span>
+      <select id="fitSel">
+        <option value="contain">Contain — full image, no crop ✓</option>
+        <option value="cover">Cover — fill cell (may crop)</option>
+        <option value="scale-down">Scale Down</option>
+      </select>
+      <span class="lbl">Scale within cell</span>
+      <div class="range-row">
+        <input type="range" id="scaleSl" min="40" max="100" value="95">
+        <span id="scaleVal">95%</span>
+      </div>
+      <span class="lbl">Cell Background</span>
+      <div class="swatch-row" id="swatchRow">
+        <div class="swatch active" data-c="#ffffff" style="background:#fff;border-color:#ccc"></div>
+        <div class="swatch" data-c="#f4efe3" style="background:#f4efe3"></div>
+        <div class="swatch" data-c="#e8f5e9" style="background:#e8f5e9"></div>
+        <div class="swatch" data-c="#fff9c4" style="background:#fff9c4"></div>
+        <div class="swatch" data-c="#fce4ec" style="background:#fce4ec"></div>
+        <div class="swatch" data-c="#e3f2fd" style="background:#e3f2fd"></div>
+        <div class="swatch" data-c="#1a1a1a" style="background:#1a1a1a"></div>
+        <input type="color" id="customColor" value="#ffffff" title="Custom">
+      </div>
+    </div>
+
+    <div class="sec" style="margin-top:auto">
+      <div class="sec-title">04 — Export</div>
+      <div id="progressWrap">
+        <div id="progressBar"><div id="progressFill"></div></div>
+        <div id="progressMsg">Preparing…</div>
+      </div>
+      <button class="btn-pdf" id="pdfBtn" disabled>⬇ Download PDF</button>
+      <button class="btn-print" id="printBtn" disabled>🖨 Print directly</button>
+      <p style="font-size:.7rem;color:var(--muted);line-height:1.6">
+        PDF → Long Bond <strong>8.5″×14″</strong><br>
+        Printer: margins <strong>None</strong>, scale <strong>100%</strong>
+      </p>
+    </div>
+
+  </aside>
+
+  <main class="preview-area">
+    <div class="preview-label">Live Preview — Long Bond (8.5″ × 14″)</div>
+    <div id="sheet">
+      <div id="couponGrid" class="b-dashed">
+        <div class="empty-state">
+          <span class="ei">🎟️</span>
+          <p>Upload your coupon image to begin</p>
+        </div>
+      </div>
+    </div>
+    <div class="info-bar" id="infoBar">5 × 20 = 100 coupons · Long Bond 8.5″ × 14″</div>
+  </main>
+</div>
+
+<!-- hidden print area -->
+<div id="printArea" style="display:none">
+  <div id="printGrid" class="b-dashed"></div>
+</div>
+
+<script>
+let imgDataURL = null;
+let cellBg = '#ffffff';
+
+const $ = id => document.getElementById(id);
+const dropZone    = $('dropZone');
+const fileInput   = $('fileInput');
+const thumbWrap   = $('thumbWrap');
+const thumb       = $('thumb');
+const rmBtn       = $('rmBtn');
+const couponGrid  = $('couponGrid');
+const printGrid   = $('printGrid');
+const pdfBtn      = $('pdfBtn');
+const printBtn    = $('printBtn');
+const colsEl      = $('cols');
+const rowsEl      = $('rows');
+const borderSel   = $('borderSel');
+const fitSel      = $('fitSel');
+const scaleSl     = $('scaleSl');
+const scaleVal    = $('scaleVal');
+const infoBar     = $('infoBar');
+const swatchRow   = $('swatchRow');
+const customColor = $('customColor');
+const progressWrap= $('progressWrap');
+const progressFill= $('progressFill');
+const progressMsg = $('progressMsg');
+
+// ── LOAD IMAGE ──
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const fr = new FileReader();
+  fr.onload = e => {
+    imgDataURL = e.target.result;
+    thumb.src = imgDataURL;
+    thumbWrap.style.display = 'block';
+    dropZone.style.display = 'none';
+    pdfBtn.disabled = false;
+    printBtn.disabled = false;
+    buildGrid();
+  };
+  fr.readAsDataURL(file);
+}
+
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+document.addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items||[])].find(i => i.type.startsWith('image/'));
+  if (item) loadFile(item.getAsFile());
+});
+
+rmBtn.addEventListener('click', () => {
+  imgDataURL = null;
+  thumbWrap.style.display = 'none';
+  dropZone.style.display = '';
+  pdfBtn.disabled = true;
+  printBtn.disabled = true;
+  fileInput.value = '';
+  couponGrid.innerHTML = `<div class="empty-state"><span class="ei">🎟️</span><p>Upload your coupon image to begin</p></div>`;
+  couponGrid.style.gridTemplateColumns = '';
+  couponGrid.style.gridTemplateRows = '';
+});
+
+// ── BUILD PREVIEW ──
+function buildGrid() {
+  if (!imgDataURL) return;
+  const cols  = clamp(parseInt(colsEl.value)||5, 1, 15);
+  const rows  = clamp(parseInt(rowsEl.value)||20, 1, 60);
+  const count = cols * rows;
+  const fit   = fitSel.value;
+  const scale = parseInt(scaleSl.value)/100;
+  const bc    = borderSel.value;
+
+  infoBar.textContent = `${cols} × ${rows} = ${count} coupons · Long Bond 8.5″ × 14″`;
+  couponGrid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+  couponGrid.style.gridTemplateRows    = `repeat(${rows},1fr)`;
+  couponGrid.className = bc;
+  couponGrid.innerHTML = '';
+
+  for (let i = 0; i < count; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'coupon-cell';
+    cell.style.background = cellBg;
+    const img = document.createElement('img');
+    img.src = imgDataURL;
+    img.style.cssText = `object-fit:${fit};width:${scale*100}%;height:${scale*100}%;display:block`;
+    img.draggable = false;
+    cell.appendChild(img);
+    couponGrid.appendChild(cell);
+  }
+}
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+[colsEl,rowsEl,borderSel,fitSel].forEach(el=>el.addEventListener('change',buildGrid));
+[colsEl,rowsEl].forEach(el=>el.addEventListener('input',buildGrid));
+scaleSl.addEventListener('input',()=>{scaleVal.textContent=scaleSl.value+'%';buildGrid();});
+
+swatchRow.querySelectorAll('.swatch').forEach(sw=>{
+  sw.addEventListener('click',()=>{
+    swatchRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+    cellBg = sw.dataset.c;
+    buildGrid();
+  });
+});
+customColor.addEventListener('input',()=>{
+  swatchRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  cellBg = customColor.value;
+  buildGrid();
+});
+
+// ── PROGRESS ──
+function setProgress(pct, msg) {
+  progressFill.style.width = pct+'%';
+  progressMsg.textContent = msg;
+}
+
+// ── PDF EXPORT ──
+pdfBtn.addEventListener('click', async () => {
+  if (!imgDataURL) return;
+  pdfBtn.disabled = true;
+  progressWrap.style.display = 'flex';
+  setProgress(5,'Preparing layout…');
+
+  const cols  = clamp(parseInt(colsEl.value)||5, 1, 15);
+  const rows  = clamp(parseInt(rowsEl.value)||20, 1, 60);
+  const count = cols * rows;
+  const fit   = fitSel.value;
+  const scale = parseInt(scaleSl.value)/100;
+  const bc    = borderSel.value;
+
+  // PDF page: 8.5in × 14in in points (72pt/in)
+  const PW_PT = 8.5 * 72;   // 612
+  const PH_PT = 14  * 72;   // 1008
+
+  // Render at 2× 96dpi = 192dpi for quality
+  const SCALE = 2;
+  const PW_PX = Math.round(8.5 * 96 * SCALE);
+  const PH_PX = Math.round(14  * 96 * SCALE);
+
+  const borderMap = {
+    'b-solid':  `${SCALE}px solid #bbb`,
+    'b-dashed': `${SCALE}px dashed #aaa`,
+    'b-dotted': `${SCALE}px dotted #aaa`,
+    'b-none':   'none',
+  };
+  const borderVal = borderMap[bc]||'none';
+
+  setProgress(15,'Building render canvas…');
+
+  // Off-screen div
+  const off = document.createElement('div');
+  off.style.cssText = [
+    `position:fixed`,`left:-${PW_PX+10}px`,`top:0`,
+    `width:${PW_PX}px`,`height:${PH_PX}px`,
+    `background:#fff`,`overflow:hidden`,
+    `display:grid`,
+    `grid-template-columns:repeat(${cols},1fr)`,
+    `grid-template-rows:repeat(${rows},1fr)`,
+    `gap:0`,
+  ].join(';');
+
+  for (let i = 0; i < count; i++) {
+    const cell = document.createElement('div');
+    cell.style.cssText = [
+      `overflow:hidden`,`display:flex`,
+      `align-items:center`,`justify-content:center`,
+      `background:${cellBg}`,`border:${borderVal}`,
+    ].join(';');
+    const img = document.createElement('img');
+    img.src = imgDataURL;
+    img.style.cssText = `object-fit:${fit};width:${scale*100}%;height:${scale*100}%;display:block`;
+    cell.appendChild(img);
+    off.appendChild(cell);
+  }
+  document.body.appendChild(off);
+
+  // Wait for images to load
+  await Promise.all([...off.querySelectorAll('img')].map(img =>
+    img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+  ));
+
+  setProgress(35,'Rendering…');
+
+  try {
+    const canvas = await html2canvas(off, {
+      scale: 1,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: PW_PX,
+      height: PH_PX,
+    });
+
+    setProgress(80,'Creating PDF…');
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: [PW_PT, PH_PT],
+      compress: true,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.93);
+    pdf.addImage(imgData, 'JPEG', 0, 0, PW_PT, PH_PT, '', 'FAST');
+
+    setProgress(97,'Saving…');
+    pdf.save('coupon-sheet-long-bond.pdf');
+
+    setProgress(100,'✓ Download complete!');
+    setTimeout(()=>{
+      progressWrap.style.display='none';
+      setProgress(0,'');
+      pdfBtn.disabled = false;
+    }, 2000);
+
+  } catch(err) {
+    console.error(err);
+    alert('PDF export failed: '+err.message);
+    progressWrap.style.display = 'none';
+    pdfBtn.disabled = false;
+  } finally {
+    document.body.removeChild(off);
+  }
+});
+
+// ── DIRECT PRINT ──
+printBtn.addEventListener('click', () => {
+  if (!imgDataURL) return;
+  const cols  = clamp(parseInt(colsEl.value)||5, 1, 15);
+  const rows  = clamp(parseInt(rowsEl.value)||20, 1, 60);
+  const count = cols * rows;
+  const fit   = fitSel.value;
+  const scale = parseInt(scaleSl.value)/100;
+  const bc    = borderSel.value;
+
+  printGrid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+  printGrid.style.gridTemplateRows    = `repeat(${rows},1fr)`;
+  printGrid.className = bc;
+  printGrid.innerHTML = '';
+
+  for (let i = 0; i < count; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'coupon-cell';
+    cell.style.background = cellBg;
+    const img = document.createElement('img');
+    img.src = imgDataURL;
+    img.style.cssText = `object-fit:${fit};width:${scale*100}%;height:${scale*100}%;display:block`;
+    cell.appendChild(img);
+    printGrid.appendChild(cell);
+  }
+
+  const pa = $('printArea');
+  pa.style.display = 'block';
+  setTimeout(()=>{ window.print(); setTimeout(()=>{ pa.style.display='none'; },600); }, 200);
+});
+</script>
+</body>
+</html>
