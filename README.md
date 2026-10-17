@@ -1,84 +1,32 @@
 # CouponPress
 
-A single-file web tool for generating a full sheet of small coupons or tickets from one image. Upload your design once, and it fills an entire long bond paper sheet automatically.
+CouponPress turns one coupon or ticket image into a full, print-ready sheet. Set the number of columns and rows, adjust image fitting and spacing, choose cut-line styles, then export a PDF or print the layout directly.
 
----
+**Live tool:** https://couponpress.pages.dev/
 
-## What it does
+## Features
 
-- Takes one image file and repeats it across a 5-column by 20-row grid (100 coupons per sheet)
-- Fits the image inside each slot without cutting or cropping it
-- Lets you download the finished sheet as a PDF ready for printing
+- Repeat a single PNG, JPG/JPEG, GIF, or WebP image across a configurable grid (1–15 columns and 1–60 rows).
+- Preview the sheet as you change the grid, image fit, scale, cut lines, and cell background.
+- Import an image by file picker, drag-and-drop, or clipboard paste.
+- Export a PDF or print directly on long bond paper (8.5 × 14 inches).
+- Runs in the browser; the selected image is read locally and is not uploaded to a CouponPress server.
+- Responsive controls and preview for desktop, tablet, and mobile screens.
 
----
+## Use it
 
-## How to use it
+1. Open https://couponpress.pages.dev/ in a modern browser.
+2. Select, drop, or paste your coupon design.
+3. Set columns and rows. The total coupon count updates with the preview.
+4. Choose a cut-line style, image fit, scale, and background color.
+5. Select **Download PDF** or **Print directly**.
 
-**Step 1 — Open the file**
+The default grid is 5 × 20 (100 coupons). The PDF and direct-print layout target 8.5 × 14-inch long bond paper. For physical printing, choose the matching paper size and use 100% scale / actual size. Printer margins and printable areas vary by device, so check the print preview before producing a batch.
 
-Download `index.html` and open it in any web browser (Chrome, Edge, Firefox). No installation needed.
+## Run locally
 
-**Step 2 — Upload your coupon image**
+This is a static, single-page app. Open `index.html` in a modern browser, or serve the directory with any static HTTP server. PDF export uses jsPDF and html2canvas loaded from CDN, so those libraries require an internet connection unless you replace the CDN dependencies with local copies. The rest of the interface and image selection run client-side.
 
-Click the upload area and choose your image file, or drag and drop the file directly onto it. Supported formats are PNG, JPG, GIF, and WEBP. You can also paste an image directly from your clipboard.
+## Privacy
 
-**Step 3 — Adjust the layout (optional)**
-
-The default is 5 columns and 20 rows. You can change these numbers to fit more or fewer coupons on the sheet. The total count updates automatically.
-
-**Step 4 — Change the look (optional)**
-
-- Cut-line style: choose dashed, solid, dotted, or no border between coupons
-- Fit mode: "Contain" keeps the full image visible with no cropping (recommended)
-- Scale: shrinks the image slightly within each slot if you want a small gap around it
-- Background color: sets the color behind the image in each slot
-
-**Step 5 — Download or print**
-
-Click "Download PDF" to save the sheet as a PDF file. The file will appear in your browser's download folder.
-
-Alternatively, click "Print directly" to send it straight to your printer without saving a file first.
-
----
-
-## Printing tips
-
-- Paper size: Long Bond or Legal (8.5 x 14 inches)
-- Margins: set to None in your print settings
-- Scale: set to 100%, do not use "fit to page"
-- If using a PDF viewer like Adobe Acrobat, use "Actual size" when printing
-
----
-
-## File format
-
-Everything is contained in a single HTML file. There is no server, no account, and no internet connection required after the page loads. Your image never leaves your computer.
-
----
-
-## Adjusting columns and rows
-
-The default 5x20 layout gives 100 coupons per sheet. If your coupon design is wider, try reducing the columns. If it is taller, reduce the rows. The preview updates live so you can see the result before downloading.
-
-| Columns | Rows | Total coupons |
-|---------|------|---------------|
-| 5       | 20   | 100           |
-| 4       | 16   | 64            |
-| 3       | 12   | 36            |
-| 2       | 10   | 20            |
-
----
-
-## Troubleshooting
-
-**The PDF downloads but prints too small or too large**
-Make sure your print settings are at 100% scale and margins are set to None. Avoid "shrink to fit" or "fit to page" options.
-
-**The image looks blurry in the PDF**
-Use a high-resolution source image. A minimum of 300 pixels per inch at the intended print size gives the best results.
-
-**The download does not start**
-Some browsers block automatic downloads. Check for a blocked download notification near the address bar and allow it.
-
-**The image is getting cut off**
-Switch the fit mode to "Contain" in the image settings. This ensures the full image is always visible inside each slot.
+CouponPress does not send the selected coupon image to a project backend. The page loads jsPDF and html2canvas from cdnjs and web fonts from Google Fonts; those external services may receive normal network request metadata when their resources load. PDF generation happens in the browser.
